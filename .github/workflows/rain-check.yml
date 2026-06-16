@@ -1,0 +1,16 @@
+name: Rain Alert Check
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check-rain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call rain alert cron endpoint
+        run: |
+          curl -s -X POST "${{ secrets.APP_URL }}/api/cron/rain" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"

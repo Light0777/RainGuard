@@ -1,0 +1,30 @@
+{
+  "version": "7.8.0",
+  "steps": [
+    {
+      "tag": "CreateTable",
+      "table": "Location",
+      "columns": [
+        { "name": "id", "type": "Text", "default": { "name": "cuid" }, "isRequired": true },
+        { "name": "userId", "type": "Text", "isRequired": true },
+        { "name": "locationName", "type": "Text", "isRequired": true },
+        { "name": "latitude", "type": "Float", "isRequired": true },
+        { "name": "longitude", "type": "Float", "isRequired": true },
+        { "name": "createdAt", "type": "DateTime", "default": { "name": "now" }, "isRequired": true }
+      ],
+      "primaryKey": { "columns": ["id"] },
+      "foreignKeys": [
+        {
+          "columns": ["userId"],
+          "referencedTable": "User",
+          "referencedColumns": ["id"],
+          "onDelete": "Cascade"
+        }
+      ],
+      "uniqueConstraints": [
+        { "name": "Location_userId_key", "columns": ["userId"] }
+      ]
+    }
+  ],
+  "datasource": "postgresql"
+}

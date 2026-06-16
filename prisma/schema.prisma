@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String     @id @default(cuid())
+  clerkId   String     @unique
+  name      String
+  email     String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  locations Location[]
+  rainAlerts RainAlert[]
+}
+
+model Location {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationName String
+  latitude     Float
+  longitude    Float
+  createdAt    DateTime @default(now())
+}
+
+model Station {
+  id        String           @id @default(cuid())
+  name      String
+  latitude  Float
+  longitude Float
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  readings  RainfallReading[]
+  alerts    Alert[]
+}
+
+model RainfallReading {
+  id         String   @id @default(cuid())
+  stationId  String
+  station    Station  @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  amountMm   Float
+  timestamp  DateTime @default(now())
+  recordedAt DateTime
+}
+
+model RainAlert {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationName  String
+  latitude      Float
+  longitude     Float
+  probability   Float
+  confidence    Int
+  message       String
+  emailTo       String
+  sentAt        DateTime @default(now())
+  rainStartTime DateTime
+}
+
+model Alert {
+  id          String    @id @default(cuid())
+  stationId   String
+  station     Station   @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  message     String
+  severity    String
+  threshold   Float
+  triggeredAt DateTime  @default(now())
+  resolvedAt  DateTime?
+}

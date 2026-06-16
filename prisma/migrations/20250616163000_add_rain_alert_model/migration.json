@@ -1,0 +1,32 @@
+{
+  "version": "7.8.0",
+  "steps": [
+    {
+      "tag": "CreateTable",
+      "table": "RainAlert",
+      "columns": [
+        { "name": "id", "type": "Text", "default": { "name": "cuid" }, "isRequired": true },
+        { "name": "userId", "type": "Text", "isRequired": true },
+        { "name": "locationName", "type": "Text", "isRequired": true },
+        { "name": "latitude", "type": "Float", "isRequired": true },
+        { "name": "longitude", "type": "Float", "isRequired": true },
+        { "name": "probability", "type": "Float", "isRequired": true },
+        { "name": "confidence", "type": "Int", "isRequired": true },
+        { "name": "message", "type": "Text", "isRequired": true },
+        { "name": "emailTo", "type": "Text", "isRequired": true },
+        { "name": "sentAt", "type": "DateTime", "default": { "name": "now" }, "isRequired": true },
+        { "name": "rainStartTime", "type": "DateTime", "isRequired": true }
+      ],
+      "primaryKey": { "columns": ["id"] },
+      "foreignKeys": [
+        {
+          "columns": ["userId"],
+          "referencedTable": "User",
+          "referencedColumns": ["id"],
+          "onDelete": "Cascade"
+        }
+      ]
+    }
+  ],
+  "datasource": "postgresql"
+}
