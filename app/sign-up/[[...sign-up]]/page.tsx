@@ -6,12 +6,16 @@ export default function SignUpPage() {
       <SignUp
         appearance={{
           elements: {
-            card: "shadow-md border border-gray-200",
-            headerTitle: "text-2xl font-bold text-gray-900",
-            headerSubtitle: "text-gray-500",
-            formButtonPrimary:
-              "bg-blue-600 hover:bg-blue-700 text-sm normal-case",
-            footerActionLink: "text-blue-600 hover:text-blue-700",
+            card: "shadow-card border border-[#ebebeb] rounded-xl",
+            headerTitle: "text-[20px] font-semibold text-[#171717]",
+            headerSubtitle: "text-[#4d4d4d] text-[14px]",
+            formButtonPrimary: "bg-[#a6cf44] hover:bg-[#8ab332] text-[#171717] rounded-md text-[14px] font-medium normal-case",
+            footerActionLink: "text-[#a6cf44] hover:text-[#8ab332]",
+            formFieldLabel: "text-[#4d4d4d] text-[13px] font-medium",
+            formFieldInput: "border border-[#ebebeb] rounded-md text-[14px] h-10",
+            socialButtonsBlockButton: "border border-[#ebebeb] hover:bg-[#fafafa] rounded-md text-[14px] font-medium",
+            dividerLine: "bg-[#ebebeb]",
+            dividerText: "text-[#888] text-[12px]",
           },
         }}
       />

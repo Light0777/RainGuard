@@ -1,26 +1,84 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-brand: #a6cf44;
+  --color-brand-bright: #cbff49;
+  --color-brand-soft: #f2fbe2;
+  --color-brand-dark: #8ab332;
+
+  --color-ink: #171717;
+  --color-body: #4d4d4d;
+  --color-mute: #888888;
+  --color-hairline: #ebebeb;
+  --color-hairline-strong: #a1a1a1;
+  --color-canvas: #ffffff;
+  --color-canvas-soft: #fafafa;
+  --color-canvas-soft-2: #f5f5f5;
+  --color-link: #a6cf44;
+  --color-link-deep: #8ab332;
+  --color-link-bg-soft: #f2fbe2;
+  --color-success: #a6cf44;
+  --color-error: #ee0000;
+  --color-error-soft: #f7d4d6;
+  --color-warning: #f5a623;
+  --color-warning-soft: #ffefcf;
+
+  --color-gradient-start: #cbff49;
+  --color-gradient-mid: #a6cf44;
+  --color-gradient-end: #8ab332;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #fafafa;
+  color: #171717;
+  font-family: var(--font-geist-sans), Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: #cbff49;
+  color: #171717;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Card shadow utilities */
+.shadow-card {
+  box-shadow: 0 0 0 1px #00000014,
+              0 1px 1px #00000005,
+              0 2px 2px #0000000a;
+}
+.shadow-card-hover {
+  box-shadow: 0 0 0 1px #00000014,
+              0 2px 2px #0000000a,
+              0 8px 8px -8px #0000000a;
+}
+.shadow-card-raised {
+  box-shadow: 0 0 0 1px #00000014,
+              0 2px 2px #0000000a,
+              0 8px 16px -4px #0000000a;
+}
+.shadow-card-modal {
+  box-shadow: 0 0 0 1px #00000014,
+              0 1px 1px #00000005,
+              0 8px 16px -4px #0000000a,
+              0 24px 32px -8px #0000000f;
 }

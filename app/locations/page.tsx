@@ -12,10 +12,12 @@ export default async function LocationsPage() {
   await syncUser();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Monitored Location</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-[24px] font-semibold leading-8 tracking-[-0.96px] text-[#171717]">
+          Monitored Location
+        </h1>
+        <p className="mt-1 text-[14px] text-[#4d4d4d]">
           Set the location you want to monitor for rainfall data.
         </p>
       </div>
