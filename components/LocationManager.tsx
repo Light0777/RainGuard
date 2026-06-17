@@ -47,6 +47,7 @@ export default function LocationManager() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const [forecast, setForecast] = useState<ForecastInterval[] | null>(null);
   const [forecastLoading, setForecastLoading] = useState(false);
@@ -167,6 +168,43 @@ export default function LocationManager() {
     setError("");
   }
 
+  async function handleGetCurrentLocation() {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      setError("Geolocation requires a secure connection (HTTPS). This page is not served over HTTPS.");
+      return;
+    }
+    setGeoLoading(true);
+    setError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setGeoLoading(false);
+        setError("");
+        const res = await fetch(`/api/geocode/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || "Failed to get location name.");
+          return;
+        }
+        const result = await res.json();
+        await handleSelect(result);
+      },
+      (err) => {
+        const messages: Record<number, string> = {
+          1: "Location access denied. Please enable location permissions in your browser settings.",
+          2: "Location unavailable. Your browser could not determine your position. Try enabling Wi-Fi or moving outdoors.",
+          3: "Location request timed out. Please try again.",
+        };
+        setError(messages[err.code] || "Failed to get your location.");
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -233,15 +271,40 @@ export default function LocationManager() {
           )}
         </div>
 
-        {isEditing && (
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-[#ebebeb]" />
+          <span className="text-[12px] text-[#a1a1a1]">or</span>
+          <div className="h-px flex-1 bg-[#ebebeb]" />
+        </div>
+
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={cancelEditing}
-            className="inline-flex h-8 items-center rounded-md border border-[#ebebeb] bg-white px-4 text-[13px] font-medium text-[#171717] hover:bg-[#fafafa] transition-colors"
+            onClick={handleGetCurrentLocation}
+            disabled={geoLoading}
+            className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#a6cf44] px-4 text-[13px] font-medium text-[#171717] hover:bg-[#8ab332] transition-colors disabled:opacity-50"
           >
-            Cancel
+            {geoLoading ? (
+              <Spinner />
+            ) : (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                <circle cx="12" cy="9" r="2.5" />
+              </svg>
+            )}
+            {geoLoading ? "Getting location..." : "Use my current location"}
           </button>
-        )}
+
+          {isEditing && (
+            <button
+              type="button"
+              onClick={cancelEditing}
+              className="inline-flex h-10 items-center rounded-md border border-[#ebebeb] bg-white px-4 text-[13px] font-medium text-[#171717] hover:bg-[#fafafa] transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
 
         {!isEditing && (
           <div className="flex flex-col items-center rounded-lg border border-dashed border-[#ebebeb] bg-[#fafafa] py-12">

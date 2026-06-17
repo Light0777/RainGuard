@@ -5,15 +5,35 @@ import { shouldSendRainAlert, DEFAULT_RAIN_CONFIG } from "@/lib/rain";
 import { GmailClient, buildRainAlertEmail } from "@/lib/email";
 import type { ForecastInterval } from "@/lib/weather";
 
-function maxRiskyProbability(intervals: ForecastInterval[]): number {
-  const now = Date.now();
-  const cutoff = now + DEFAULT_RAIN_CONFIG.lookAheadMinutes * 60 * 1000;
-  const risky = intervals.filter((i) => {
-    const t = new Date(i.startTime).getTime();
-    return t >= now && t <= cutoff && i.precipitationProbability >= DEFAULT_RAIN_CONFIG.probabilityThreshold;
+function now() {
+  return Date.now();
+}
+
+function cutoff() {
+  return now() + DEFAULT_RAIN_CONFIG.lookAheadMinutes * 60 * 1000;
+}
+
+function intervalsInWindow(intervals: ForecastInterval[]) {
+  const t = now();
+  const c = cutoff();
+  return intervals.filter((i) => {
+    const s = new Date(i.startTime).getTime();
+    return s >= t && s <= c;
   });
-  if (risky.length === 0) return 0;
-  return Math.round(Math.max(...risky.map((i) => i.precipitationProbability)));
+}
+
+function maxProbability(intervals: ForecastInterval[]): number {
+  const inWindow = intervalsInWindow(intervals);
+  if (inWindow.length === 0) return 0;
+  return Math.round(Math.max(...inWindow.map((i) => i.precipitationProbability)));
+}
+
+function minutesUntilFirstRain(intervals: ForecastInterval[]): number | null {
+  const inWindow = intervalsInWindow(intervals);
+  const rainy = inWindow.filter((i) => i.precipitationProbability >= DEFAULT_RAIN_CONFIG.probabilityThreshold);
+  if (rainy.length === 0) return null;
+  const first = Math.min(...rainy.map((i) => new Date(i.startTime).getTime()));
+  return Math.max(1, Math.round((first - now()) / 60000));
 }
 
 export async function POST(req: NextRequest) {
@@ -39,7 +59,16 @@ export async function POST(req: NextRequest) {
     include: { locations: true },
   });
 
-  const results: { userId: string; alerted: boolean; reason?: string }[] = [];
+  interface Result {
+    location: string;
+    rainProbability: number;
+    minutesUntilRain: number | null;
+    threshold: number;
+    alerted: boolean;
+    reason: string;
+  }
+
+  const results: Result[] = [];
 
   for (const user of users) {
     const location = user.locations[0]!;
@@ -49,30 +78,32 @@ export async function POST(req: NextRequest) {
       intervals = await client.getForecast(location.latitude, location.longitude);
     } catch (error) {
       const msg = error instanceof WeatherApiError ? error.message : "Failed to fetch forecast";
-      results.push({ userId: user.id, alerted: false, reason: msg });
+      results.push({ location: location.locationName, rainProbability: 0, minutesUntilRain: null, threshold: DEFAULT_RAIN_CONFIG.probabilityThreshold, alerted: false, reason: msg });
       continue;
     }
 
-    const result = shouldSendRainAlert(intervals, user.id);
+    const rainProbability = maxProbability(intervals);
+    const minutesUntilRain = minutesUntilFirstRain(intervals);
+    const threshold = DEFAULT_RAIN_CONFIG.probabilityThreshold;
+    const alertResult = shouldSendRainAlert(intervals, user.id);
 
-    if (!result.shouldAlert) {
-      results.push({ userId: user.id, alerted: false, reason: "No rain expected" });
+    if (!alertResult.shouldAlert) {
+      results.push({ location: location.locationName, rainProbability, minutesUntilRain, threshold, alerted: false, reason: "No rain expected" });
       continue;
     }
 
-    const rainTime = new Date(result.rainStartTime!);
-    const minutesUntilRain = Math.max(1, Math.round((rainTime.getTime() - Date.now()) / (60 * 1000)));
-    const probability = maxRiskyProbability(intervals);
+    const rainTime = new Date(alertResult.rainStartTime!);
+    const minutesToRain = Math.max(1, Math.round((rainTime.getTime() - now()) / 60000));
 
     const { subject, html, text } = buildRainAlertEmail({
       locationName: location.locationName,
-      minutesUntilRain,
+      minutesUntilRain: minutesToRain,
       rainStartTime: rainTime.toLocaleString("en-US", {
         weekday: "short", month: "short", day: "numeric",
         hour: "2-digit", minute: "2-digit",
       }),
-      probability,
-      confidence: result.confidence,
+      probability: rainProbability,
+      confidence: alertResult.confidence,
       appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
     });
 
@@ -80,7 +111,7 @@ export async function POST(req: NextRequest) {
     const emailResult = await emailClient.sendEmail({ to: user.email, subject, html, text });
 
     if (!emailResult.success) {
-      results.push({ userId: user.id, alerted: true, reason: `Email failed: ${emailResult.error}` });
+      results.push({ location: location.locationName, rainProbability, minutesUntilRain, threshold, alerted: true, reason: `Email failed: ${emailResult.error}` });
       continue;
     }
 
@@ -90,15 +121,15 @@ export async function POST(req: NextRequest) {
         locationName: location.locationName,
         latitude: location.latitude,
         longitude: location.longitude,
-        probability,
-        confidence: result.confidence,
+        probability: rainProbability,
+        confidence: alertResult.confidence,
         message: subject,
         emailTo: user.email,
         rainStartTime: rainTime,
       },
     });
 
-    results.push({ userId: user.id, alerted: true });
+    results.push({ location: location.locationName, rainProbability, minutesUntilRain: minutesToRain, threshold, alerted: true, reason: "Alert sent" });
   }
 
   return NextResponse.json({ checked: users.length, results });
