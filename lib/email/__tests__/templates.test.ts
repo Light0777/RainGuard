@@ -11,9 +11,10 @@ describe("buildRainAlertEmail", () => {
     appUrl: "http://localhost:3000",
   };
 
-  it("returns subject 'Rain expected soon'", () => {
+  it("returns subject with location name", () => {
     const { subject } = buildRainAlertEmail(baseData);
-    expect(subject).toBe("Rain expected soon");
+    expect(subject).toContain("London, UK");
+    expect(subject).toContain("Rain expected");
   });
 
   it("includes location name in text body", () => {

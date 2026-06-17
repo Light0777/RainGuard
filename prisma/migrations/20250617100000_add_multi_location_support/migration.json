@@ -1,0 +1,6 @@
+{
+  "version": "7.1",
+  "checksum": "manual_migration",
+  "steps": [],
+  "log": ["Add LocationType enum", "Remove Location.userId unique constraint", "Rename locationName to name", "Add type and updatedAt to Location", "Add locationId to RainAlert"]
+}

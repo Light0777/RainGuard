@@ -12,7 +12,7 @@ export function buildRainAlertEmail(data: RainAlertEmailData): {
   html: string;
   text: string;
 } {
-  const subject = "Rain expected soon";
+  const subject = `☔ Rain expected near ${data.locationName}`;
 
   const text = [
     `Rain is expected near ${data.locationName} in approximately ${data.minutesUntilRain} minutes.`,

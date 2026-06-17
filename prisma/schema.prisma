@@ -18,14 +18,26 @@ model User {
   rainAlerts RainAlert[]
 }
 
+enum LocationType {
+  HOME
+  OFFICE
+  SCHOOL
+  FARM
+  PARENTS_HOME
+  CUSTOM
+}
+
 model Location {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locationName String
-  latitude     Float
-  longitude    Float
-  createdAt    DateTime @default(now())
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      LocationType @default(HOME)
+  latitude  Float
+  longitude Float
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  rainAlerts RainAlert[]
 }
 
 model Station {
@@ -52,6 +64,8 @@ model RainAlert {
   id            String   @id @default(cuid())
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locationId    String
+  location      Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
   locationName  String
   latitude      Float
   longitude     Float

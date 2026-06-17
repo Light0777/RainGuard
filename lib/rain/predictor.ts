@@ -3,7 +3,7 @@ import { getSharedCache } from "@/lib/weather";
 import type { RainAlertResult, RainPredictionConfig } from "./types";
 import { DEFAULT_RAIN_CONFIG } from "./types";
 
-const CACHE_PREFIX = "rain_alert_sent:";
+const CACHE_PREFIX = "rain_alert_location:";
 
 export function shouldSendRainAlert(
   intervals: ForecastInterval[],

@@ -59,8 +59,9 @@ export async function POST(req: NextRequest) {
     include: { locations: true },
   });
 
-  interface Result {
+  interface LocationResult {
     location: string;
+    locationId: string;
     rainProbability: number;
     minutesUntilRain: number | null;
     threshold: number;
@@ -68,69 +69,140 @@ export async function POST(req: NextRequest) {
     reason: string;
   }
 
-  const results: Result[] = [];
-
-  for (const user of users) {
-    const location = user.locations[0]!;
-    let intervals: ForecastInterval[];
-    try {
-      const client = new TomorrowioClient({ apiKey: weatherApiKey });
-      intervals = await client.getForecast(location.latitude, location.longitude);
-    } catch (error) {
-      const msg = error instanceof WeatherApiError ? error.message : "Failed to fetch forecast";
-      results.push({ location: location.locationName, rainProbability: 0, minutesUntilRain: null, threshold: DEFAULT_RAIN_CONFIG.probabilityThreshold, alerted: false, reason: msg });
-      continue;
-    }
-
-    const rainProbability = maxProbability(intervals);
-    const minutesUntilRain = minutesUntilFirstRain(intervals);
-    const threshold = DEFAULT_RAIN_CONFIG.probabilityThreshold;
-    const alertResult = shouldSendRainAlert(intervals, user.id);
-
-    if (!alertResult.shouldAlert) {
-      results.push({ location: location.locationName, rainProbability, minutesUntilRain, threshold, alerted: false, reason: "No rain expected" });
-      continue;
-    }
-
-    const rainTime = new Date(alertResult.rainStartTime!);
-    const minutesToRain = Math.max(1, Math.round((rainTime.getTime() - now()) / 60000));
-
-    const { subject, html, text } = buildRainAlertEmail({
-      locationName: location.locationName,
-      minutesUntilRain: minutesToRain,
-      rainStartTime: rainTime.toLocaleString("en-US", {
-        weekday: "short", month: "short", day: "numeric",
-        hour: "2-digit", minute: "2-digit",
-      }),
-      probability: rainProbability,
-      confidence: alertResult.confidence,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-    });
-
-    const emailClient = new GmailClient({ user: gmailUser, appPassword: gmailAppPassword });
-    const emailResult = await emailClient.sendEmail({ to: user.email, subject, html, text });
-
-    if (!emailResult.success) {
-      results.push({ location: location.locationName, rainProbability, minutesUntilRain, threshold, alerted: true, reason: `Email failed: ${emailResult.error}` });
-      continue;
-    }
-
-    await prisma.rainAlert.create({
-      data: {
-        userId: user.id,
-        locationName: location.locationName,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        probability: rainProbability,
-        confidence: alertResult.confidence,
-        message: subject,
-        emailTo: user.email,
-        rainStartTime: rainTime,
-      },
-    });
-
-    results.push({ location: location.locationName, rainProbability, minutesUntilRain: minutesToRain, threshold, alerted: true, reason: "Alert sent" });
+  interface UserResult {
+    user: string;
+    email: string;
+    locationsChecked: number;
+    results: LocationResult[];
   }
 
-  return NextResponse.json({ checked: users.length, results });
+  const allResults: UserResult[] = [];
+  let totalLocationsChecked = 0;
+  let totalAlertsSent = 0;
+  let totalErrors = 0;
+
+  for (const user of users) {
+    const locations = user.locations;
+    const userResult: UserResult = {
+      user: user.email,
+      email: user.email,
+      locationsChecked: locations.length,
+      results: [],
+    };
+
+    for (const location of locations) {
+      totalLocationsChecked++;
+      let intervals: ForecastInterval[];
+      try {
+        const client = new TomorrowioClient({ apiKey: weatherApiKey });
+        intervals = await client.getForecast(location.latitude, location.longitude);
+      } catch (error) {
+        totalErrors++;
+        const msg = error instanceof WeatherApiError ? error.message : "Failed to fetch forecast";
+        userResult.results.push({
+          location: location.name,
+          locationId: location.id,
+          rainProbability: 0,
+          minutesUntilRain: null,
+          threshold: DEFAULT_RAIN_CONFIG.probabilityThreshold,
+          alerted: false,
+          reason: msg,
+        });
+        continue;
+      }
+
+      const rainProbability = maxProbability(intervals);
+      const minutesUntilRainVal = minutesUntilFirstRain(intervals);
+      const threshold = DEFAULT_RAIN_CONFIG.probabilityThreshold;
+      const locationKey = `location:${location.id}`;
+      const alertResult = shouldSendRainAlert(intervals, locationKey);
+
+      if (!alertResult.shouldAlert) {
+        userResult.results.push({
+          location: location.name,
+          locationId: location.id,
+          rainProbability,
+          minutesUntilRain: minutesUntilRainVal,
+          threshold,
+          alerted: false,
+          reason: "No rain expected or cooldown active",
+        });
+        continue;
+      }
+
+      const rainTime = new Date(alertResult.rainStartTime!);
+      const minutesToRain = Math.max(1, Math.round((rainTime.getTime() - now()) / 60000));
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+      const { subject, html, text } = buildRainAlertEmail({
+        locationName: location.name,
+        minutesUntilRain: minutesToRain,
+        rainStartTime: rainTime.toLocaleString("en-US", {
+          weekday: "short", month: "short", day: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        }),
+        probability: rainProbability,
+        confidence: alertResult.confidence,
+        appUrl,
+      });
+
+      const emailClient = new GmailClient({ user: gmailUser, appPassword: gmailAppPassword });
+      const emailResult = await emailClient.sendEmail({ to: user.email, subject, html, text });
+
+      if (!emailResult.success) {
+        totalErrors++;
+        userResult.results.push({
+          location: location.name,
+          locationId: location.id,
+          rainProbability,
+          minutesUntilRain: minutesToRain,
+          threshold,
+          alerted: true,
+          reason: `Email failed: ${emailResult.error}`,
+        });
+        continue;
+      }
+
+      await prisma.rainAlert.create({
+        data: {
+          userId: user.id,
+          locationId: location.id,
+          locationName: location.name,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          probability: rainProbability,
+          confidence: alertResult.confidence,
+          message: subject,
+          emailTo: user.email,
+          rainStartTime: rainTime,
+        },
+      });
+
+      totalAlertsSent++;
+      userResult.results.push({
+        location: location.name,
+        locationId: location.id,
+        rainProbability,
+        minutesUntilRain: minutesToRain,
+        threshold,
+        alerted: true,
+        reason: "Alert sent",
+      });
+    }
+
+    allResults.push(userResult);
+  }
+
+  const summary = {
+    locationsChecked: totalLocationsChecked,
+    alertsSent: totalAlertsSent,
+    errors: totalErrors,
+    usersProcessed: users.length,
+    results: allResults,
+  };
+
+  console.log(JSON.stringify(summary, null, 2));
+
+  return NextResponse.json(summary);
 }

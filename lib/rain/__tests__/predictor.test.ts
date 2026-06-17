@@ -44,7 +44,7 @@ describe("shouldSendRainAlert", () => {
     const intervals = [makeInterval(10, 80)];
     const result = shouldSendRainAlert(intervals, "loc-1");
     expect(result.shouldAlert).toBe(true);
-    expect(result.rainStartTime).toBe(intervals[0].startTime);
+    expect(result.rainStartTime).toBe(intervals[0]!.startTime);
     expect(result.confidence).toBeGreaterThan(0);
   });
 
@@ -56,7 +56,7 @@ describe("shouldSendRainAlert", () => {
     ];
     const result = shouldSendRainAlert(intervals, "loc-1");
     expect(result.shouldAlert).toBe(true);
-    expect(result.rainStartTime).toBe(intervals[0].startTime);
+    expect(result.rainStartTime).toBe(intervals[0]!.startTime);
   });
 
   it("filters out intervals before now", () => {
@@ -66,7 +66,7 @@ describe("shouldSendRainAlert", () => {
     ];
     const result = shouldSendRainAlert(intervals, "loc-1");
     expect(result.shouldAlert).toBe(true);
-    expect(result.rainStartTime).toBe(intervals[1].startTime);
+    expect(result.rainStartTime).toBe(intervals[1]!.startTime);
   });
 
   it("filters out intervals beyond lookAhead window", () => {
@@ -76,7 +76,7 @@ describe("shouldSendRainAlert", () => {
     ];
     const result = shouldSendRainAlert(intervals, "loc-1");
     expect(result.shouldAlert).toBe(true);
-    expect(result.rainStartTime).toBe(intervals[0].startTime);
+    expect(result.rainStartTime).toBe(intervals[0]!.startTime);
   });
 
   it("returns false when all risky intervals are outside window", () => {
@@ -180,7 +180,7 @@ describe("shouldSendRainAlert", () => {
     const intervals = [makeInterval(10, 80)];
     const result = shouldSendRainAlert(intervals, "");
     expect(result.shouldAlert).toBe(true);
-    expect(result.rainStartTime).toBe(intervals[0].startTime);
+    expect(result.rainStartTime).toBe(intervals[0]!.startTime);
   });
 
   it("handles intervals at exactly the threshold", () => {

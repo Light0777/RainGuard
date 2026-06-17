@@ -3,28 +3,21 @@ import { TomorrowioClient } from "../tomorrow";
 import { getSharedCache, WeatherAuthError } from "../index";
 
 const mockForecastResponse = {
-  data: {
-    timelines: [
+  timelines: {
+    hourly: [
       {
-        timestep: "1h",
-        startTime: "2026-06-16T00:00:00Z",
-        endTime: "2026-06-18T00:00:00Z",
-        intervals: [
-          {
-            startTime: "2026-06-16T00:00:00Z",
-            values: {
-              precipitationProbability: 30,
-              precipitationIntensity: 0.5,
-            },
-          },
-          {
-            startTime: "2026-06-16T01:00:00Z",
-            values: {
-              precipitationProbability: 80,
-              precipitationIntensity: 2.1,
-            },
-          },
-        ],
+        time: "2026-06-16T00:00:00Z",
+        values: {
+          precipitationProbability: 30,
+          rainIntensity: 0.5,
+        },
+      },
+      {
+        time: "2026-06-16T01:00:00Z",
+        values: {
+          precipitationProbability: 80,
+          rainIntensity: 2.1,
+        },
       },
     ],
   },
@@ -70,7 +63,7 @@ describe("TomorrowioClient", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const callUrl = fetchMock.mock.calls[0][0] as string;
+    const callUrl = fetchMock.mock.calls[0]![0] as string;
     expect(callUrl).toContain("40.7128");
     expect(callUrl).toContain("-74.006");
     expect(callUrl).toContain("apikey=test-key");
